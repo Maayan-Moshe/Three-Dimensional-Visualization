@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Header from "./components/Header";
 import Navbar from "./components/Navbar";
 import MeshCard from "./components/MeshCard";
@@ -6,6 +6,10 @@ import "./App.css";
 
 function App() {
   const [meshes, setMeshes] = useState([]);
+  const [syncedCamera, setSyncedCamera] = useState({
+    position: [0, 5, 10],
+    target: [0, 0, 0],
+  });
 
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files);
@@ -60,7 +64,13 @@ function App() {
             className="flex flex-row gap-4 h-full"
           >
             {meshes.map((mesh) => (
-              <MeshCard key={mesh.id} mesh={mesh} onClose={removeMesh} />
+              <MeshCard 
+                key={mesh.id} 
+                mesh={mesh} 
+                onClose={removeMesh}
+                syncedCamera={syncedCamera}
+                onCameraChange={setSyncedCamera}
+              />
             ))}
           </div>
         )}

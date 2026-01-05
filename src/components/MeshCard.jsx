@@ -2,7 +2,7 @@ import React from 'react';
 import Scene from './Scene';
 import './MeshCard.css';
 
-const MeshCard = ({ mesh, onClose }) => {
+const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
 
   return (
     <div className="mesh-card">
@@ -17,7 +17,11 @@ const MeshCard = ({ mesh, onClose }) => {
         </button>
       </div>
       <div className="mesh-card-content">
-        <Scene meshes={[mesh]} />
+        <Scene 
+          meshes={[mesh]} 
+          syncedCamera={syncedCamera}
+          onCameraChange={onCameraChange}
+        />
       </div>
     </div>
   );

@@ -1,16 +1,59 @@
-import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { Suspense, useRef, useEffect } from 'react';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Center } from '@react-three/drei';
 import MeshViewer from './MeshViewer';
 import './Scene.css';
 
-const Scene = ({ meshes }) => {
+const SyncedControls = ({ syncedCamera, onCameraChange }) => {
+  const { camera } = useThree();
+  const controlsRef = useRef();
+  const isUpdating = useRef(false);
+
+  // Update local camera when synced state changes
+  useEffect(() => {
+    if (syncedCamera && controlsRef.current && !isUpdating.current) {
+      isUpdating.current = true;
+      camera.position.set(...syncedCamera.position);
+      controlsRef.current.target.set(...syncedCamera.target);
+      controlsRef.current.update();
+      isUpdating.current = false;
+    }
+  }, [syncedCamera, camera]);
+
+  // Sync camera changes to parent
+  useFrame(() => {
+    if (controlsRef.current && !isUpdating.current) {
+      const hasChanged = 
+        camera.position.x !== syncedCamera.position[0] ||
+        camera.position.y !== syncedCamera.position[1] ||
+        camera.position.z !== syncedCamera.position[2] ||
+        controlsRef.current.target.x !== syncedCamera.target[0] ||
+        controlsRef.current.target.y !== syncedCamera.target[1] ||
+        controlsRef.current.target.z !== syncedCamera.target[2];
+
+      if (hasChanged) {
+        onCameraChange({
+          position: [camera.position.x, camera.position.y, camera.position.z],
+          target: [
+            controlsRef.current.target.x,
+            controlsRef.current.target.y,
+            controlsRef.current.target.z
+          ]
+        });
+      }
+    }
+  });
+
+  return <OrbitControls ref={controlsRef} makeDefault />;
+};
+
+const Scene = ({ meshes, syncedCamera, onCameraChange }) => {
   return (
     <Canvas camera={{ position: [0, 5, 10], fov: 50 }} className="scene-canvas">
       <color attach="background" args={['#1a1a1a']} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
-      <OrbitControls makeDefault />
+      <SyncedControls syncedCamera={syncedCamera} onCameraChange={onCameraChange} />
       <Grid infiniteGrid fadeDistance={50} fadeStrength={5} />
       
       <Suspense fallback={null}>
