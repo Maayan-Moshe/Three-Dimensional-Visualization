@@ -1,0 +1,99 @@
+.navbar {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.navbar-container {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 3rem;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-upload-label {
+  cursor: pointer;
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  display: inline-block;
+}
+
+.navbar-upload-label:hover {
+  background-color: #4338ca;
+}
+
+.navbar-upload-input {
+  display: none;
+}
+
+.navbar-clear-button {
+  color: #6b7280;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.navbar-clear-button:hover {
+  color: #dc2626;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar-notification-button {
+  padding: 0.25rem;
+  border-radius: 9999px;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-notification-button:hover {
+  color: #6b7280;
+}
+
+.navbar-notification-button svg {
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.navbar-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
