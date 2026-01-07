@@ -64,7 +64,7 @@ export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
 
   // Build URL with voxel size query parameter
   const url = new URL(REGISTRATION_URL);
-  url.searchParams.set('downsample_voxel_size', voxelSize.toString());
+  url.searchParams.set('voxel_size', voxelSize.toString());
 
   const response = await fetch(url.toString(), {
     method: 'POST',
