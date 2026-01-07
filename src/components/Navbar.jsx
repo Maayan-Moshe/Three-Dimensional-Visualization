@@ -1,7 +1,7 @@
 import React from 'react';
 import './Navbar.css';
 
-const Navbar = ({ onUpload, onClear }) => {
+const Navbar = ({ onUpload, onClear, onRegister, isRegistering, registrationError, hasMeshes, voxelSize, onVoxelSizeChange }) => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
@@ -24,6 +24,28 @@ const Navbar = ({ onUpload, onClear }) => {
             >
               Clear All
             </button>
+            <div className="navbar-voxel-size">
+              <label htmlFor="voxelSize" className="navbar-voxel-label">Voxel Size:</label>
+              <input
+                id="voxelSize"
+                type="number"
+                step="0.01"
+                min="0.001"
+                value={voxelSize}
+                onChange={(e) => onVoxelSizeChange(parseFloat(e.target.value) || 0.05)}
+                className="navbar-voxel-input"
+              />
+            </div>
+            <button 
+              onClick={onRegister}
+              disabled={!hasMeshes || isRegistering}
+              className="navbar-register-button"
+            >
+              {isRegistering ? 'Registering...' : 'Register Meshes'}
+            </button>
+            {registrationError && (
+              <span className="navbar-error">{registrationError}</span>
+            )}
           </div>
           
           <div className="navbar-right">

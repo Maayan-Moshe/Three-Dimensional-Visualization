@@ -58,6 +58,61 @@
   color: #dc2626;
 }
 
+.navbar-register-button {
+  cursor: pointer;
+  background-color: #059669;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  border: none;
+}
+
+.navbar-register-button:hover:not(:disabled) {
+  background-color: #047857;
+}
+
+.navbar-register-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.navbar-error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.navbar-voxel-size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-voxel-label {
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.navbar-voxel-input {
+  width: 5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #374151;
+  background-color: white;
+}
+
+.navbar-voxel-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+}
+
 .navbar-right {
   display: flex;
   align-items: center;
