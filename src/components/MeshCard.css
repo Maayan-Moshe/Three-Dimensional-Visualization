@@ -51,3 +51,89 @@
 .mesh-card-content {
     flex: 1;
 }
+
+/* Deformation Controls */
+.mesh-card-actions {
+    padding: 0.5rem;
+    background-color: #2d3748;
+    border-bottom: 1px solid #374151;
+}
+
+.deform-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.deform-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.deform-input-group label {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.deform-input-group input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #4b5563;
+    border-radius: 0.25rem;
+    background-color: #1f2937;
+    color: #e5e7eb;
+    font-size: 0.8rem;
+}
+
+.deform-input-group input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.deform-input-group input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.deform-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.deform-button:hover:not(:disabled) {
+    background-color: #2563eb;
+}
+
+.deform-button:disabled {
+    background-color: #4b5563;
+    cursor: not-allowed;
+}
+
+/* Spinner Animation */
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #ffffff40;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
