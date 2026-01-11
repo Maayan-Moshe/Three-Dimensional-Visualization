@@ -46,6 +46,15 @@ export const GeometryProvider = ({ children }) => {
     }
   }, []);
 
+  const updateFullGeometry = useCallback((meshId, newVertices, newFaces) => {
+    geometryCache.current.set(meshId, { vertices: newVertices, faces: newFaces });
+    // Increment version to trigger re-render
+    setGeometryVersion(prev => ({
+      ...prev,
+      [meshId]: (prev[meshId] || 0) + 1
+    }));
+  }, []);
+
   const getGeometryVersion = useCallback((meshId) => {
     return geometryVersion[meshId] || 0;
   }, [geometryVersion]);
@@ -56,6 +65,7 @@ export const GeometryProvider = ({ children }) => {
     getAllGeometries,
     clearGeometry,
     updateGeometry,
+    updateFullGeometry,
     getGeometryVersion,
   };
 

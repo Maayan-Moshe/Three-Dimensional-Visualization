@@ -3,7 +3,9 @@
  * Handles communication with the mesh registration server
  */
 
-const REGISTRATION_URL = import.meta.env.VITE_REGISTRATION_SERVER_URL || 'http://localhost:8000/register';
+import { encodePlyBinary } from './plyUtils';
+
+const REGISTRATION_URL = import.meta.env.VITE_REGISTRATION_SERVER_URL || 'http://localhost:8001/register';
 
 /**
  * Extract vertices and faces from a Three.js geometry or mesh
@@ -40,26 +42,10 @@ export const extractGeometryData = (geometry) => {
 export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
   const formData = new FormData();
 
-  // Add mesh metadata (list of mesh IDs)
-  const meshIds = Array.from(geometryMap.keys());
-  formData.append('mesh_ids', JSON.stringify(meshIds));
-
-  // Add binary data for each mesh
+  // Add PLY binary data for each mesh
   for (const [meshId, { vertices, faces }] of geometryMap) {
-    // Create Blobs from typed arrays
-    const verticesBlob = new Blob([vertices.buffer], { type: 'application/octet-stream' });
-    const facesBlob = new Blob([faces.buffer], { type: 'application/octet-stream' });
-
-    formData.append(`vertices_${meshId}`, verticesBlob, `vertices_${meshId}.bin`);
-    formData.append(`faces_${meshId}`, facesBlob, `faces_${meshId}.bin`);
-    
-    // Add metadata for each mesh (vertex count, face count, data types)
-    formData.append(`meta_${meshId}`, JSON.stringify({
-      vertexCount: vertices.length / 3,  // 3 floats per vertex (x, y, z)
-      faceCount: faces.length / 3,       // 3 indices per face (triangle)
-      vertexType: 'float32',
-      faceType: 'uint32'
-    }));
+    const plyBlob = encodePlyBinary(vertices, faces);
+    formData.append(`mesh_${meshId}`, plyBlob, `${meshId}.ply`);
   }
 
   // Build URL with voxel size query parameter
@@ -79,17 +65,17 @@ export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
   // Backend response format:
   // {
   //   "reference_mesh_id": "...",
-  //   "algorithm": "...",
+  //   "voxel_size": ...,
+  //   "mesh_count": ...,
   //   "transformations": {
-  //     "meshId": { "matrix": [[4x4 row-major]], "rotation": ..., "translation": ..., "scale": ... }
+  //     "meshId": [[4x4 row-major matrix]]
   //   }
   // }
   const result = await response.json();
   
   // Convert transformation matrices to column-major order for Three.js
   const transformations = {};
-  for (const [meshId, data] of Object.entries(result.transformations)) {
-    const matrix = data.matrix;
+  for (const [meshId, matrix] of Object.entries(result.transformations)) {
     // Convert from row-major (numpy) to column-major (Three.js)
     // Row-major: [[r0c0, r0c1, r0c2, r0c3], [r1c0, r1c1, r1c2, r1c3], ...]
     // Column-major: [r0c0, r1c0, r2c0, r3c0, r0c1, r1c1, r2c1, r3c1, ...]

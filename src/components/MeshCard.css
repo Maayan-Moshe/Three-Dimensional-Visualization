@@ -122,6 +122,30 @@
     cursor: not-allowed;
 }
 
+.clean-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background-color: #10b981;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.clean-button:hover:not(:disabled) {
+    background-color: #059669;
+}
+
+.clean-button:disabled {
+    background-color: #4b5563;
+    cursor: not-allowed;
+}
+
 /* Spinner Animation */
 .spinner {
     width: 14px;

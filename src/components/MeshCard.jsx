@@ -2,13 +2,33 @@ import React, { useState } from 'react';
 import Scene from './Scene';
 import { useGeometry } from '../contexts/GeometryContext';
 import { deformMesh } from '../services/deformationService';
+import { cleanMesh } from '../services/cleaningService';
 import './MeshCard.css';
 
 const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
   const [magnitudeMm, setMagnitudeMm] = useState(1.0);
   const [areaMm2, setAreaMm2] = useState(100.0);
   const [isDeforming, setIsDeforming] = useState(false);
-  const { getGeometry, updateGeometry } = useGeometry();
+  const [isCleaning, setIsCleaning] = useState(false);
+  const { getGeometry, updateGeometry, updateFullGeometry } = useGeometry();
+
+  const handleClean = async () => {
+    const geometry = getGeometry(mesh.id);
+    if (!geometry) {
+      console.error('No geometry found for mesh:', mesh.id);
+      return;
+    }
+
+    setIsCleaning(true);
+    try {
+      const { vertices, faces } = await cleanMesh(mesh.id, geometry);
+      updateFullGeometry(mesh.id, vertices, faces);
+    } catch (error) {
+      console.error('Cleaning failed:', error);
+    } finally {
+      setIsCleaning(false);
+    }
+  };
 
   const handleDeform = async () => {
     const geometry = getGeometry(mesh.id);
@@ -67,7 +87,7 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
           <button
             className="deform-button"
             onClick={handleDeform}
-            disabled={isDeforming}
+            disabled={isDeforming || isCleaning}
           >
             {isDeforming ? (
               <>
@@ -76,6 +96,20 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
               </>
             ) : (
               'Deform'
+            )}
+          </button>
+          <button
+            className="clean-button"
+            onClick={handleClean}
+            disabled={isCleaning || isDeforming}
+          >
+            {isCleaning ? (
+              <>
+                <span className="spinner"></span>
+                Cleaning...
+              </>
+            ) : (
+              'Clean Mesh'
             )}
           </button>
         </div>
