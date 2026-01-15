@@ -1,11 +1,14 @@
-import React, { useEffect, useRef, useMemo } from 'react';
-import { useLoader } from '@react-three/fiber';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { useGLTF } from '@react-three/drei';
-import { Matrix4, BufferGeometry, BufferAttribute } from 'three';
-import { useGeometry } from '../contexts/GeometryContext';
-import { extractGeometryData } from '../services/registrationService';
+import React, { useEffect, useRef, useMemo, use } from "react";
+import { useLoader } from "@react-three/fiber";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
+import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
+import { useGLTF } from "@react-three/drei";
+import { decodePlyBinary } from "../services/plyUtils";
+import { Matrix4, BufferGeometry, BufferAttribute } from "three";
+import { useGeometry } from "../contexts/GeometryContext";
+import { extractGeometryData } from "../services/registrationService";
+import { mergeGroupMeshes } from "../utils/merge_group_to_single_mesh";
 
 // Helper to create Matrix4 from 16-element array
 const createMatrix4 = (matrixArray) => {
@@ -35,7 +38,7 @@ const mergeGeometryData = (geometries) => {
   // Merge all vertices and faces
   let totalVertices = 0;
   let totalFaces = 0;
-  const allData = geometries.map(geom => {
+  const allData = geometries.map((geom) => {
     const data = extractGeometryData(geom);
     totalVertices += data.vertices.length;
     totalFaces += data.faces.length;
@@ -51,12 +54,12 @@ const mergeGeometryData = (geometries) => {
 
   for (const data of allData) {
     mergedVertices.set(data.vertices, vertexOffset);
-    
+
     // Offset face indices by the current vertex count
     for (let i = 0; i < data.faces.length; i++) {
       mergedFaces[faceOffset + i] = data.faces[i] + vertexIndexOffset;
     }
-    
+
     vertexOffset += data.vertices.length;
     faceOffset += data.faces.length;
     vertexIndexOffset += data.vertices.length / 3;
@@ -65,89 +68,123 @@ const mergeGeometryData = (geometries) => {
   return { vertices: mergedVertices, faces: mergedFaces };
 };
 
+/**
+ * Common helper to update vertices on a BufferGeometry.
+ * Used by all model types (GLTF, OBJ, STL, PLY) for consistency.
+ * @param {BufferGeometry} bufferGeometry - The Three.js BufferGeometry to update
+ * @param {Float32Array} newVertices - The new vertex positions
+ * @returns {boolean} - Whether the update was successful
+ */
+export const updateGeometryVertices = (bufferGeometry, newVertices) => {
+  if (!bufferGeometry) return false;
+  const positionAttribute = bufferGeometry.getAttribute('position');
+  if (
+    positionAttribute &&
+    positionAttribute.array.length === newVertices.length
+  ) {
+    positionAttribute.array.set(newVertices);
+    positionAttribute.needsUpdate = true;
+    bufferGeometry.computeVertexNormals();
+    bufferGeometry.computeBoundingSphere();
+    return true;
+  }
+  return false;
+};
+
 const GLTFModel = ({ url, meshId, transformMatrix }) => {
   const { scene } = useGLTF(url);
   const { registerGeometry, getGeometry, getGeometryVersion } = useGeometry();
-  const groupRef = useRef();
-  
+  const meshRef = useRef();
+
   const clone = useMemo(() => scene.clone(), [scene]);
-  const matrix = useMemo(() => createMatrix4(transformMatrix), [transformMatrix]);
+  const geometries = extractAllGeometries(clone);
+  const data = mergeGeometryData(geometries);
+  const geom = useMemo(() => {
+    if (data) {
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new BufferAttribute(data.vertices, 3));
+      geometry.setIndex(new BufferAttribute(data.faces, 1));
+      geometry.computeVertexNormals();
+      return geometry;
+    } else return new BufferGeometry(); // Empty geometry if no data
+  }, [data]); 
+  const matrix = useMemo(
+    () => createMatrix4(transformMatrix),
+    [transformMatrix]
+  );
   const geometryVersion = getGeometryVersion(meshId);
 
   useEffect(() => {
-    const geometries = extractAllGeometries(clone);
-    const data = mergeGeometryData(geometries);
-    if (data) {
-      registerGeometry(meshId, data.vertices, data.faces);
-    }
-  }, [clone, meshId, registerGeometry]);
+    registerGeometry(meshId, geom.getAttribute("position"), geom.index.array);
+  }, [geom, meshId, registerGeometry]);
 
   // Update geometry when vertices change
   useEffect(() => {
-    if (geometryVersion === 0) return;
+    if (!geometryLoaded || !bufferGeometry) return;
     const geometry = getGeometry(meshId);
     if (!geometry) return;
+    updateGeometryVertices(bufferGeometry, geometry.vertices);
+  }, [geometryVersion, meshId, getGeometry, geometryLoaded, bufferGeometry]);
 
-    clone.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const positionAttribute = child.geometry.attributes.position;
-        if (positionAttribute && positionAttribute.array.length === geometry.vertices.length) {
-          positionAttribute.array.set(geometry.vertices);
-          positionAttribute.needsUpdate = true;
-          child.geometry.computeVertexNormals();
-          child.geometry.computeBoundingSphere();
-        }
-      }
-    });
-  }, [geometryVersion, meshId, getGeometry, clone]);
+  if (!geometryLoaded || !bufferGeometry) return null;
 
   return (
-    <group ref={groupRef} matrixAutoUpdate={false} matrix={matrix}>
-      <primitive object={clone} />
-    </group>
+    <mesh
+      ref={meshRef}
+      geometry={geom}
+      matrixAutoUpdate={false}
+      matrix={matrix}
+    >
+      <meshStandardMaterial color="white" />
+    </mesh>
   );
 };
 
 const OBJModel = ({ url, meshId, transformMatrix }) => {
   const obj = useLoader(OBJLoader, url);
   const { registerGeometry, getGeometry, getGeometryVersion } = useGeometry();
-  const groupRef = useRef();
-  
+  const meshRef = useRef();
+
   const clone = useMemo(() => obj.clone(), [obj]);
-  const matrix = useMemo(() => createMatrix4(transformMatrix), [transformMatrix]);
+  const geometries = extractAllGeometries(clone);
+  const data = mergeGeometryData(geometries);
+  const geom = useMemo(() => {
+    if (data) {
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new BufferAttribute(data.vertices, 3));
+      geometry.setIndex(new BufferAttribute(data.faces, 1));
+      geometry.computeVertexNormals();
+      return geometry;
+    } else return new BufferGeometry(); // Empty geometry if no data
+  }, [data]); 
+  const matrix = useMemo(
+    () => createMatrix4(transformMatrix),
+    [transformMatrix]
+  );
   const geometryVersion = getGeometryVersion(meshId);
 
   useEffect(() => {
-    const geometries = extractAllGeometries(clone);
-    const data = mergeGeometryData(geometries);
-    if (data) {
-      registerGeometry(meshId, data.vertices, data.faces);
-    }
-  }, [clone, meshId, registerGeometry]);
+    registerGeometry(meshId, geom.getAttribute("position").array, geom.index.array);
+  }, [geom, meshId, registerGeometry]);
 
   // Update geometry when vertices change
   useEffect(() => {
-    if (geometryVersion === 0) return;
+    if (!geom) return;
     const geometry = getGeometry(meshId);
     if (!geometry) return;
-
-    clone.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const positionAttribute = child.geometry.attributes.position;
-        if (positionAttribute && positionAttribute.array.length === geometry.vertices.length) {
-          positionAttribute.array.set(geometry.vertices);
-          positionAttribute.needsUpdate = true;
-          child.geometry.computeVertexNormals();
-          child.geometry.computeBoundingSphere();
-        }
-      }
-    });
-  }, [geometryVersion, meshId, getGeometry, clone]);
+    updateGeometryVertices(geom, geometry.vertices);
+  }, [geometryVersion, meshId, getGeometry, geom]);
+  if (!geom) return null;
 
   return (
-    <group ref={groupRef} matrixAutoUpdate={false} matrix={matrix}>
-      <primitive object={clone} />
-    </group>
+    <mesh
+      ref={meshRef}
+      geometry={geom}
+      matrixAutoUpdate={false}
+      matrix={matrix}
+    >
+      <meshStandardMaterial color="white" />
+    </mesh>
   );
 };
 
@@ -155,8 +192,11 @@ const STLModel = ({ url, meshId, transformMatrix }) => {
   const geom = useLoader(STLLoader, url);
   const { registerGeometry, getGeometry, getGeometryVersion } = useGeometry();
   const meshRef = useRef();
-  
-  const matrix = useMemo(() => createMatrix4(transformMatrix), [transformMatrix]);
+
+  const matrix = useMemo(
+    () => createMatrix4(transformMatrix),
+    [transformMatrix]
+  );
   const geometryVersion = getGeometryVersion(meshId);
 
   useEffect(() => {
@@ -166,37 +206,79 @@ const STLModel = ({ url, meshId, transformMatrix }) => {
 
   // Update geometry when vertices change
   useEffect(() => {
-    if (geometryVersion === 0) return;
+    if (!geom) return;
     const geometry = getGeometry(meshId);
-    if (!geometry || !meshRef.current) return;
-
-    const positionAttribute = meshRef.current.geometry.attributes.position;
-    if (positionAttribute && positionAttribute.array.length === geometry.vertices.length) {
-      positionAttribute.array.set(geometry.vertices);
-      positionAttribute.needsUpdate = true;
-      meshRef.current.geometry.computeVertexNormals();
-      meshRef.current.geometry.computeBoundingSphere();
-    }
-  }, [geometryVersion, meshId, getGeometry]);
+    if (!geometry) return;
+    updateGeometryVertices(geom, geometry.vertices);
+  }, [geometryVersion, meshId, getGeometry, geom]);
+  if (!geom) return null;
 
   return (
-    <mesh ref={meshRef} geometry={geom} matrixAutoUpdate={false} matrix={matrix}>
+    <mesh
+      ref={meshRef}
+      geometry={geom}
+      matrixAutoUpdate={false}
+      matrix={matrix}
+    >
       <meshStandardMaterial color="orange" />
+    </mesh>
+  );
+};
+
+const PlyModel = ({ url, meshId, transformMatrix }) => {
+  const ply = useLoader(PLYLoader, url);
+  const geom = ply.isBufferGeometry ? ply : ply.geometry;
+  const { registerGeometry, getGeometry, getGeometryVersion } = useGeometry();
+  const meshRef = useRef();
+
+  const matrix = useMemo(
+    () => createMatrix4(transformMatrix),
+    [transformMatrix]
+  );
+  const geometryVersion = getGeometryVersion(meshId);
+
+  useEffect(() => {
+    const data = extractGeometryData(geom);
+    registerGeometry(meshId, data.vertices, data.faces);
+  }, [geom, meshId, registerGeometry]);
+
+  // Update geometry when vertices change
+  useEffect(() => {
+    if (!geom) return;
+    const geometry = getGeometry(meshId);
+    if (!geometry) return;
+    updateGeometryVertices(geom, geometry.vertices);
+  }, [geometryVersion, meshId, getGeometry, geom]);
+  if (!geom) return null;
+
+  return (
+    <mesh
+      ref={meshRef}
+      geometry={geom}
+      matrixAutoUpdate={false}
+      matrix={matrix}
+    >
+      <meshStandardMaterial color="white" />
     </mesh>
   );
 };
 
 const MeshViewer = ({ mesh }) => {
   const { url, format, id, transformMatrix } = mesh;
-  
-  if (format === 'gltf' || format === 'glb') {
-    return <GLTFModel url={url} meshId={id} transformMatrix={transformMatrix} />;
+
+  if (format === "gltf" || format === "glb") {
+    return (
+      <GLTFModel url={url} meshId={id} transformMatrix={transformMatrix} />
+    );
   }
-  if (format === 'obj') {
+  if (format === "obj") {
     return <OBJModel url={url} meshId={id} transformMatrix={transformMatrix} />;
   }
-  if (format === 'stl') {
+  if (format === "stl") {
     return <STLModel url={url} meshId={id} transformMatrix={transformMatrix} />;
+  }
+  if (format === "ply") {
+    return <PlyModel url={url} meshId={id} transformMatrix={transformMatrix} />;
   }
   return null;
 };

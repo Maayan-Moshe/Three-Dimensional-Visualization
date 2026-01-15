@@ -50,7 +50,7 @@ export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
 
   // Build URL with voxel size query parameter
   const url = new URL(REGISTRATION_URL);
-  url.searchParams.set('voxel_size', voxelSize.toString());
+  url.searchParams.set('voxel_size_mm', voxelSize.toString());
 
   const response = await fetch(url.toString(), {
     method: 'POST',
@@ -65,14 +65,14 @@ export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
   // Backend response format:
   // {
   //   "reference_mesh_id": "...",
-  //   "voxel_size": ...,
+  //   "voxel_size_mm": ...,
   //   "mesh_count": ...,
   //   "transformations": {
   //     "meshId": [[4x4 row-major matrix]]
   //   }
   // }
   const result = await response.json();
-  
+
   // Convert transformation matrices to column-major order for Three.js
   const transformations = {};
   for (const [meshId, matrix] of Object.entries(result.transformations)) {
@@ -86,7 +86,7 @@ export const registerMeshes = async (geometryMap, voxelSize = 0.05) => {
       matrix[0][3], matrix[1][3], matrix[2][3], matrix[3][3],
     ];
   }
-  
+
   return transformations;
 };
 

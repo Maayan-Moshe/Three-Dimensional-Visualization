@@ -81,6 +81,7 @@ function App() {
 
       // Call registration service with voxel size
       const transformations = await registerMeshesService(filteredGeometries, voxelSize);
+      console.log("Received transformations:", transformations);
 
       // Update meshes with new transformation matrices
       setMeshes((prev) =>

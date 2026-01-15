@@ -6,11 +6,20 @@ import { cleanMesh } from '../services/cleaningService';
 import './MeshCard.css';
 
 const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
-  const [magnitudeMm, setMagnitudeMm] = useState(1.0);
-  const [areaMm2, setAreaMm2] = useState(100.0);
+  const [deformationRatio, setDeformationRatio] = useState(0.1);
+  const [numberOfModes, setNumberOfModes] = useState(3);
   const [isDeforming, setIsDeforming] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
   const { getGeometry, updateGeometry, updateFullGeometry } = useGeometry();
+
+  const handleNumberOfModesChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    if (!isNaN(value) && value >= 1) {
+      setNumberOfModes(value);
+    } else if (e.target.value === '') {
+      setNumberOfModes(1);
+    }
+  };
 
   const handleClean = async () => {
     const geometry = getGeometry(mesh.id);
@@ -39,7 +48,7 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
 
     setIsDeforming(true);
     try {
-      const deformedVertices = await deformMesh(mesh.id, geometry, magnitudeMm, areaMm2);
+      const deformedVertices = await deformMesh(mesh.id, geometry, deformationRatio, numberOfModes);
       updateGeometry(mesh.id, deformedVertices);
     } catch (error) {
       console.error('Deformation failed:', error);
@@ -63,24 +72,25 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
       <div className="mesh-card-actions">
         <div className="deform-controls">
           <div className="deform-input-group">
-            <label htmlFor={`magnitude-${mesh.id}`}>Magnitude (mm)</label>
+            <label htmlFor={`ratio-${mesh.id}`}>Deformation Ratio</label>
             <input
-              id={`magnitude-${mesh.id}`}
+              id={`ratio-${mesh.id}`}
               type="number"
-              value={magnitudeMm}
-              onChange={(e) => setMagnitudeMm(parseFloat(e.target.value) || 0)}
-              step="0.1"
+              value={deformationRatio}
+              onChange={(e) => setDeformationRatio(parseFloat(e.target.value) || 0)}
+              step="0.01"
               disabled={isDeforming}
             />
           </div>
           <div className="deform-input-group">
-            <label htmlFor={`area-${mesh.id}`}>Area (mm²)</label>
+            <label htmlFor={`modes-${mesh.id}`}>Number of Modes</label>
             <input
-              id={`area-${mesh.id}`}
+              id={`modes-${mesh.id}`}
               type="number"
-              value={areaMm2}
-              onChange={(e) => setAreaMm2(parseFloat(e.target.value) || 0)}
-              step="10"
+              value={numberOfModes}
+              onChange={handleNumberOfModesChange}
+              min="1"
+              step="1"
               disabled={isDeforming}
             />
           </div>

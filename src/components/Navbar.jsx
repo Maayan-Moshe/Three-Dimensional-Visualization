@@ -13,7 +13,7 @@ const Navbar = ({ onUpload, onClear, onRegister, isRegistering, registrationErro
               <input 
                 type="file" 
                 multiple 
-                accept=".obj,.stl,.gltf,.glb" 
+                accept=".obj,.stl,.gltf,.glb, .ply" 
                 className="navbar-upload-input" 
                 onChange={onUpload} 
               />
