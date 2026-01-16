@@ -39,7 +39,9 @@ export const updateGeometryVertices = (bufferGeometry, newVertices) => {
 
 function MeshViewer({ mesh }) {
   const { url, format, meshId, transformMatrix } = mesh;
-  const data = surfaceLoader(url, format);
+  // Cache the loaded surface data - surfaceLoader uses hooks internally that cache by URL,
+  // but we memoize the result to avoid reprocessing on every render
+  const data = useMemo(() => surfaceLoader(url, format), [url, format]);
   const { registerGeometry, getGeometry, getGeometryVersion } = useGeometry();
   const meshRef = useRef();
 
@@ -52,10 +54,12 @@ function MeshViewer({ mesh }) {
       return geometry;
     } else return new BufferGeometry(); // Empty geometry if no data
   }, [data]); 
+
   const matrix = useMemo(
     () => createMatrix4(transformMatrix),
     [transformMatrix]
   );
+
   const geometryVersion = getGeometryVersion(meshId);
 
   useEffect(() => {
@@ -65,9 +69,10 @@ function MeshViewer({ mesh }) {
 
   // Update geometry when vertices change
   useEffect(() => {
+    if (geometryVersion === 0) return;
     if (!geom) return;
     const geometry = getGeometry(meshId);
-    if (!geometry || !geometry.vertices) return;
+    if (!geometry || !meshRef.current) return;
     updateGeometryVertices(geom, geometry.vertices);
   }, [geometryVersion, meshId, getGeometry, geom]);
   if (!geom) return null;

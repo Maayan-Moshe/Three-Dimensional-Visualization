@@ -40,13 +40,12 @@ function stlLoader(url) {
 function plyLoader(url) {
   const ply = useLoader(PLYLoader, url);
   const geometry = ply.isBufferGeometry ? ply : ply.geometry;
-  return extractGeometryData(geometry);;
+  return extractGeometryData(geometry);
 }
 
 
 function getFromSceneObj(sceneObj) {
-  const clone = useMemo(() => sceneObj.clone(), [sceneObj]);
-  const geometries = extractAllGeometries(clone);
+  const geometries = extractAllGeometries(sceneObj);
   const data = mergeGeometryData(geometries);
   return data;
 }
