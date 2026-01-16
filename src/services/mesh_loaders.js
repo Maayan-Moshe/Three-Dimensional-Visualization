@@ -4,60 +4,51 @@ import { useLoader } from "@react-three/fiber";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader';
+import { extractGeometryData } from "../services/registrationService";
 
 function surfaceLoader(url, format) {
-    switch (format.toLowerCase()) {
-        case 'gltf': return gltfLoader(url);
-        case 'obj': return objLoader(url);
-        case 'stl': return stlLoader(url);
-        case 'ply': return plyLoader(url);
-        case 'glb': return gltfLoader(url);
-        default:
-            throw new Error(`Unsupported format: ${format}`);
-    }
+  switch (format.toLowerCase()) {
+    case 'gltf': return gltfLoader(url);
+    case 'obj': return objLoader(url);
+    case 'stl': return stlLoader(url);
+    case 'ply': return plyLoader(url);
+    case 'glb': return gltfLoader(url);
+    default:
+      throw new Error(`Unsupported format: ${format}`);
+  }
 }
 
 function gltfLoader(url) {
-    const { scene } = useGLTF(url);
-    return getFromSceneObj(scene);
+  const { scene } = useGLTF(url);
+  return getFromSceneObj(scene);
 };
 
 
 function objLoader(url) {
-    const obj = useLoader(OBJLoader, url);
-    return getFromSceneObj(obj);
+  const obj = useLoader(OBJLoader, url);
+  return getFromSceneObj(obj);
 };
 
 
 function stlLoader(url) {
-    const stl = useLoader(STLLoader, url);
-    const geometry = stl.isBufferGeometry ? stl : stl.geometry;
-    return geometry;
+  const stl = useLoader(STLLoader, url);
+  const geometry = stl.isBufferGeometry ? stl : stl.geometry;
+  return extractGeometryData(geometry);;
 }
 
 
 function plyLoader(url) {
-    const ply = useLoader(PLYLoader, url);
-    const geometry = ply.isBufferGeometry ? ply : ply.geometry;
-    return geometry;
+  const ply = useLoader(PLYLoader, url);
+  const geometry = ply.isBufferGeometry ? ply : ply.geometry;
+  return extractGeometryData(geometry);;
 }
 
 
 function getFromSceneObj(sceneObj) {
-    const clone = useMemo(() => sceneObj.clone(), [sceneObj]);
-    const geometries = extractAllGeometries(clone);
-    const data = mergeGeometryData(geometries);
-    const geom = useMemo(() => {
-        if (data) {
-        const geometry = new BufferGeometry();
-        geometry.setAttribute('position', new BufferAttribute(data.vertices, 3));
-        geometry.setIndex(new BufferAttribute(data.faces, 1));
-        geometry.computeVertexNormals();
-        return geometry;
-        }
-    }, new BufferGeometry()); // Empty geometry if no data
-
-    return geom;
+  const clone = useMemo(() => sceneObj.clone(), [sceneObj]);
+  const geometries = extractAllGeometries(clone);
+  const data = mergeGeometryData(geometries);
+  return data;
 }
 
 
@@ -96,12 +87,12 @@ const mergeGeometryData = (geometries) => {
 
   for (const data of allData) {
     mergedVertices.set(data.vertices, vertexOffset);
-    
+
     // Offset face indices by the current vertex count
     for (let i = 0; i < data.faces.length; i++) {
       mergedFaces[faceOffset + i] = data.faces[i] + vertexIndexOffset;
     }
-    
+
     vertexOffset += data.vertices.length;
     faceOffset += data.faces.length;
     vertexIndexOffset += data.vertices.length / 3;
