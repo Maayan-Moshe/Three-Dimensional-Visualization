@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import Scene from './Scene';
-import { useGeometry } from '../contexts/GeometryContext';
-import { deformMesh } from '../services/deformationService';
-import { cleanMesh } from '../services/cleaningService';
-import './MeshCard.css';
+import React, { useState } from "react";
+import Scene from "./Scene";
+import { useGeometry } from "../contexts/GeometryContext";
+import { deformMesh } from "../services/deformationService";
+import { cleanMesh } from "../services/cleaningService";
+import "./MeshCard.css";
 
 const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
   const [deformationRatio, setDeformationRatio] = useState(0.1);
   const [numberOfModes, setNumberOfModes] = useState(3);
   const [isDeforming, setIsDeforming] = useState(false);
   const [isCleaning, setIsCleaning] = useState(false);
-  const { getGeometry, updateGeometry, updateFullGeometry } = useGeometry();
+  const { getGeometry, updateFullGeometry } = useGeometry();
 
   const handleNumberOfModesChange = (e) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value) && value >= 1) {
       setNumberOfModes(value);
-    } else if (e.target.value === '') {
+    } else if (e.target.value === "") {
       setNumberOfModes(1);
     }
   };
@@ -24,7 +24,7 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
   const handleClean = async () => {
     const geometry = getGeometry(mesh.id);
     if (!geometry) {
-      console.error('No geometry found for mesh:', mesh.id);
+      console.error("No geometry found for mesh:", mesh.id);
       return;
     }
 
@@ -33,7 +33,7 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
       const { vertices, faces } = await cleanMesh(mesh.id, geometry);
       updateFullGeometry(mesh.id, vertices, faces);
     } catch (error) {
-      console.error('Cleaning failed:', error);
+      console.error("Cleaning failed:", error);
     } finally {
       setIsCleaning(false);
     }
@@ -42,16 +42,22 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
   const handleDeform = async () => {
     const geometry = getGeometry(mesh.id);
     if (!geometry) {
-      console.error('No geometry found for mesh:', mesh.id);
+      console.error("No geometry found for mesh:", mesh.id);
       return;
     }
 
     setIsDeforming(true);
     try {
-      const deformedVertices = await deformMesh(mesh.id, geometry, deformationRatio, numberOfModes);
-      updateGeometry(mesh.id, deformedVertices);
+      console.log(`Deforming mesh ${mesh.id} with ratio ${deformationRatio} and modes ${numberOfModes}`);
+      const { vertices: deformedVertices, faces: deformedFaces } = await deformMesh(
+        mesh.id,
+        geometry,
+        deformationRatio,
+        numberOfModes
+      );
+      updateFullGeometry(mesh.id, deformedVertices, deformedFaces);
     } catch (error) {
-      console.error('Deformation failed:', error);
+      console.error("Deformation failed:", error);
     } finally {
       setIsDeforming(false);
     }
@@ -61,8 +67,8 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
     <div className="mesh-card">
       <div className="mesh-card-header">
         <span className="mesh-card-title">{mesh.name}</span>
-        <button 
-          className="mesh-card-close" 
+        <button
+          className="mesh-card-close"
           onClick={() => onClose(mesh.id)}
           aria-label="Close"
         >
@@ -77,7 +83,9 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
               id={`ratio-${mesh.id}`}
               type="number"
               value={deformationRatio}
-              onChange={(e) => setDeformationRatio(parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                setDeformationRatio(parseFloat(e.target.value) || 0)
+              }
               step="0.01"
               disabled={isDeforming}
             />
@@ -105,7 +113,7 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
                 Deforming...
               </>
             ) : (
-              'Deform'
+              "Deform"
             )}
           </button>
           <button
@@ -119,14 +127,14 @@ const MeshCard = ({ mesh, onClose, syncedCamera, onCameraChange }) => {
                 Cleaning...
               </>
             ) : (
-              'Clean Mesh'
+              "Clean Mesh"
             )}
           </button>
         </div>
       </div>
       <div className="mesh-card-content">
-        <Scene 
-          meshes={[mesh]} 
+        <Scene
+          meshes={[mesh]}
           syncedCamera={syncedCamera}
           onCameraChange={onCameraChange}
         />

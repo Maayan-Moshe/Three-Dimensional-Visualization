@@ -41,6 +41,6 @@ export const deformMesh = async (meshId, geometry, deformationRatio, numberOfMod
   // Response is binary PLY data
   const arrayBuffer = await response.arrayBuffer();
   const { vertices: deformedVertices } = decodePlyBinary(arrayBuffer);
-
-  return deformedVertices;
+  // console.log("change in vertices:", deformedVertices.map((v, i) => v - vertices[i]));
+  return { vertices: deformedVertices, faces: faces};
 };

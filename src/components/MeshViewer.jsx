@@ -25,7 +25,7 @@ export const updateGeometryVertices = (bufferGeometry, newVertices) => {
   const positionAttribute = bufferGeometry.getAttribute('position');
   if (
     positionAttribute &&
-    positionAttribute.array.count === newVertices.length
+    positionAttribute.array.length === newVertices.length
   ) {
     positionAttribute.array.set(newVertices);
     positionAttribute.needsUpdate = true;
@@ -36,9 +36,45 @@ export const updateGeometryVertices = (bufferGeometry, newVertices) => {
   return false;
 };
 
+/**
+ * Common helper to update both vertices and faces on a BufferGeometry.
+ * @param {BufferGeometry} bufferGeometry - The Three.js BufferGeometry to update
+ * @param {Float32Array} newVertices - The new vertex positions
+ * @param {Uint32Array} newFaces - The new face indices
+ * @returns {boolean} - Whether the update was successful
+ */
+export const updateFullBufferGeometry = (bufferGeometry, newVertices, newFaces) => {
+  if (!bufferGeometry) return false;
+  
+  // Update vertices
+  const positionAttribute = bufferGeometry.getAttribute('position');
+  if (positionAttribute && positionAttribute.array.length === newVertices.length) {
+    positionAttribute.array.set(newVertices);
+    positionAttribute.needsUpdate = true;
+  } else {
+    // Vertex count changed, need to create new attribute
+    bufferGeometry.setAttribute('position', new BufferAttribute(newVertices, 3));
+  }
+  
+  // Update faces (index)
+  const indexAttribute = bufferGeometry.getIndex();
+  if (indexAttribute && indexAttribute.array.length === newFaces.length) {
+    indexAttribute.array.set(newFaces);
+    indexAttribute.needsUpdate = true;
+  } else {
+    // Face count changed, need to set new index
+    bufferGeometry.setIndex(new BufferAttribute(newFaces, 1));
+  }
+  
+  bufferGeometry.computeVertexNormals();
+  bufferGeometry.computeBoundingSphere();
+  return true;
+};
+
 
 function MeshViewer({ mesh }) {
-  const { url, format, meshId, transformMatrix } = mesh;
+  const { url, format, id: meshId, transformMatrix } = mesh;
+  console.log(`Rendering MeshViewer for mesh ID: ${meshId}, URL: ${url}, format: ${format}`);
   // Cache the loaded surface data - surfaceLoader uses hooks internally that cache by URL,
   // but we memoize the result to avoid reprocessing on every render
   const data = useMemo(() => surfaceLoader(url, format), [url, format]);
@@ -63,17 +99,17 @@ function MeshViewer({ mesh }) {
   const geometryVersion = getGeometryVersion(meshId);
 
   useEffect(() => {
-    const data = extractGeometryData(geom);
-    registerGeometry(meshId, data.vertices, data.faces);
+    //TODO check if data is indeed registered as we get error in MeshCard about missing geometry
+    const regitered_data = extractGeometryData(geom);
+    registerGeometry(meshId, regitered_data.vertices, regitered_data.faces);
   }, [geom, meshId, registerGeometry]);
 
-  // Update geometry when vertices change
+  // Update geometry when vertices or faces change
   useEffect(() => {
-    if (geometryVersion === 0) return;
     if (!geom) return;
     const geometry = getGeometry(meshId);
     if (!geometry || !meshRef.current) return;
-    updateGeometryVertices(geom, geometry.vertices);
+    updateFullBufferGeometry(geom, geometry.vertices, geometry.faces);
   }, [geometryVersion, meshId, getGeometry, geom]);
   if (!geom) return null;
 

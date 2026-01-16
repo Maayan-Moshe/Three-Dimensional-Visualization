@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useRef, useCallback, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useRef,
+  useCallback,
+  useState,
+} from "react";
 
 const GeometryContext = createContext(null);
 
@@ -23,7 +29,7 @@ export const GeometryProvider = ({ children }) => {
   const clearGeometry = useCallback((meshId) => {
     if (meshId) {
       geometryCache.current.delete(meshId);
-      setGeometryVersion(prev => {
+      setGeometryVersion((prev) => {
         const newVersion = { ...prev };
         delete newVersion[meshId];
         return newVersion;
@@ -37,27 +43,37 @@ export const GeometryProvider = ({ children }) => {
   const updateGeometry = useCallback((meshId, newVertices) => {
     const existing = geometryCache.current.get(meshId);
     if (existing) {
-      geometryCache.current.set(meshId, { vertices: newVertices, faces: existing.faces });
+      console.log(`Updating geometry for meshId: ${meshId}`);
+      geometryCache.current.set(meshId, {
+        vertices: newVertices,
+        faces: existing.faces,
+      });
       // Increment version to trigger re-render
-      setGeometryVersion(prev => ({
+      setGeometryVersion((prev) => ({
         ...prev,
-        [meshId]: (prev[meshId] || 0) + 1
+        [meshId]: (prev[meshId] || 0) + 1,
       }));
     }
   }, []);
 
   const updateFullGeometry = useCallback((meshId, newVertices, newFaces) => {
-    geometryCache.current.set(meshId, { vertices: newVertices, faces: newFaces });
+    geometryCache.current.set(meshId, {
+      vertices: newVertices,
+      faces: newFaces,
+    });
     // Increment version to trigger re-render
-    setGeometryVersion(prev => ({
+    setGeometryVersion((prev) => ({
       ...prev,
-      [meshId]: (prev[meshId] || 0) + 1
+      [meshId]: (prev[meshId] || 0) + 1,
     }));
   }, []);
 
-  const getGeometryVersion = useCallback((meshId) => {
-    return geometryVersion[meshId] || 0;
-  }, [geometryVersion]);
+  const getGeometryVersion = useCallback(
+    (meshId) => {
+      return geometryVersion[meshId] || 0;
+    },
+    [geometryVersion]
+  );
 
   const value = {
     registerGeometry,
@@ -79,7 +95,7 @@ export const GeometryProvider = ({ children }) => {
 export const useGeometry = () => {
   const context = useContext(GeometryContext);
   if (!context) {
-    throw new Error('useGeometry must be used within a GeometryProvider');
+    throw new Error("useGeometry must be used within a GeometryProvider");
   }
   return context;
 };

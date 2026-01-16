@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { useLoader } from "@react-three/fiber";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
